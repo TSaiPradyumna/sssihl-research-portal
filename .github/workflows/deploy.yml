@@ -40,12 +40,18 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload artifact
+      - name: Upload artifact (GitHub Pages)
         uses: actions/upload-pages-artifact@v3
         with:
           path: new/dist
 
-  deploy:
+      - name: Upload artifact (Cloudflare)
+        uses: actions/upload-artifact@v4
+        with:
+          name: cf-dist
+          path: new/dist
+
+  deploy-github-pages:
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -55,3 +61,20 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  deploy-cloudflare:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cf-dist
+          path: cf-dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy cf-dist --project-name=sssihl-research-portal
